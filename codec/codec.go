@@ -4,7 +4,7 @@ import "io"
 
 type Header struct {
 	ServiceMethod string // 指定服务与方法
-	SequenceNum   uint64 // 客户端指定的序列号, 也可理解为某个请求的 ID, 可以区分不同的请求
+	SequenceNum   uint64 // 某个请求的 ID, 可以区分不同的请求
 	Error         string // 错误信息, 客户端置空, 服务端若有错误才填写
 }
 
@@ -26,7 +26,7 @@ type Type string
 // NewCodecFuncMap 是 类型 ==> 函数 的映射, 用于 *注册* 和 *查找* 编解码器 (codec)
 var NewCodecFuncMap map[Type]NewCodecFunc
 
-// 定义不同的编解码器
+// 定义两种编解码器类型
 const (
 	GobType  Type = "application/gob" // Gob: Go Binary
 	JsonType Type = "application/json"

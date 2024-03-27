@@ -19,12 +19,12 @@ type GobCodec struct {
 // 由于 nil 指针不指向任何具体的值，这个表达式实际上是在说：“即使是一个 nil 的 *GobCodec 也满足 Codec 接口的要求。”
 var _ Codec = (*GobCodec)(nil)
 
-// ReadHeader 利用 GobCodec 的 Decode 方法实现读取消息头
+// ReadHeader 利用 encoding/gob 的 Decode 方法实现读取消息头
 func (c *GobCodec) ReadHeader(header *Header) error {
 	return c.dec.Decode(header)
 }
 
-// ReadBody 利用 GobCodec 的 Encode 方法实现读取消息体
+// ReadBody 利用 encoding/gob 的 Encode 方法实现读取消息体
 func (c *GobCodec) ReadBody(body interface{}) error {
 	return c.dec.Decode(body)
 }
