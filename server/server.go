@@ -3,6 +3,7 @@ package server
 import (
 	codec "EugeneRPC/codec"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -74,8 +75,8 @@ func (server *Server) serveCodec(cc codec.Codec) {
 			if req == nil {
 				break
 			}
-			req.h.Error = err.Error()
-			server.sendResponse(cc, req.h, inalidRequest, sending)
+			req.header.Error = err.Error()
+			server.sendResponse(cc, req.header, inalidRequest, sending)
 			continue
 		}
 		waitGroup.Add(1)
@@ -84,27 +85,38 @@ func (server *Server) serveCodec(cc codec.Codec) {
 }
 
 type request struct {
-	h            *codec.Header
-	argv, replyv reflect.Value
+	header *codec.Header
+	argv   reflect.Value
+	replyv reflect.Value
 }
 
 func (server *Server) readRequestHeader(cc codec.Codec) (*codec.Header, error) {
-	var h codec.Header
-	if err := cc.ReadHeader(&h); err != nil {
-		if err != io.EOF && err != io.ErrUnexpectedEOF {
+	var header codec.Header
+	// 传入的结构体 cc 要求实现了 codec.Codec 的所有方法
+	// 所以可以直接调用其已实现的 ReadHeader 方法
+	if err := cc.ReadHeader(&header); err != nil {
+		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			log.Println("RPC 服务: header 读取错误: ", err)
 		}
 		return nil, err
 	}
-	return &h, nil
+	return &header, nil
 }
+
+// readRequest 读取请求
 func (server *Server) readRequest(cc codec.Codec) (*request, error) {
-	h, err := server.readRequestHeader(cc)
+	// 先解析请求头
+	header, err := server.readRequestHeader(cc)
 	if err != nil {
 		return nil, err
 	}
-	req := &request{h: h}
+	req := &request{header: header}
 
+	// 再利用反射获取请求参数
+	// TODO 此时不知道请求参数的具体类型, 当前版本先假设其为字符串类型
+	// reflect.TypeOf("") 获取传入参数的类型
+	// reflect.New(t) 分配内存并返回一个指向新分配零值的 t 对象
+	// 创建了一个类型为string的空接口值
 	req.argv = reflect.New(reflect.TypeOf(""))
 	if err = cc.ReadBody(req.argv.Interface()); err != nil {
 		log.Println("RPC 服务: argv 读取错误: ", err)
@@ -122,9 +134,9 @@ func (server *Server) sendResponse(cc codec.Codec, header *codec.Header, body in
 
 func (server *Server) handleRequest(cc codec.Codec, req *request, sending *sync.Mutex, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
-	log.Println(req.h, req.argv.Elem())
-	req.replyv = reflect.ValueOf(fmt.Sprintf("EugeneRPC resp %d", req.h.SequenceNum))
-	server.sendResponse(cc, req.h, req.replyv.Interface(), sending)
+	log.Println(req.header, req.argv.Elem())
+	req.replyv = reflect.ValueOf(fmt.Sprintf("EugeneRPC resp %d", req.header.SequenceNum))
+	server.sendResponse(cc, req.header, req.replyv.Interface(), sending)
 }
 
 func Accept(listener net.Listener) {
