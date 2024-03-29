@@ -6,6 +6,7 @@ import (
 )
 
 type request struct {
-	h            *codec.Header
-	argv, replyv reflect.Value
+	header *codec.Header
+	argv   reflect.Value
+	replyv reflect.Value
 }
