@@ -12,19 +12,6 @@ import (
 	"sync"
 )
 
-// MagicNumber 用于标识这是一个 EugeneRPC 的请求 (类似一种水印)
-const MagicNumber = 0x1234abcd
-
-type Option struct {
-	MagicNumber int        // 水印标识
-	CodecType   codec.Type // 客户端选择的编解码格式
-}
-
-var DefaultOption = &Option{
-	MagicNumber: MagicNumber,
-	CodecType:   codec.GobType,
-}
-
 type Server struct {
 }
 
@@ -34,6 +21,7 @@ func NewServer() *Server {
 
 var DefaultServer = NewServer()
 
+// Accept 循环等待 socket 建立连接, 若连接无错误则开启 server.serveConn 子协程去处理具体过程.
 func (server *Server) Accept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
@@ -45,6 +33,9 @@ func (server *Server) Accept(listener net.Listener) {
 	}
 }
 
+// ServeConn 对于 Option 的解析默认使用 JSON 格式.
+// 若 MagicNumber 和 编解码器类型 都正确,
+// 则将调用对应的编解码器处理 conn 后得到的 Codec 实例传入 server.serveCodec() 中
 func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 	defer func() { _ = conn.Close() }()
 	var opt Option
@@ -61,6 +52,7 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 		log.Printf("RPC 服务: 编解码器类型错误: %s", opt.CodecType)
 		return
 	}
+	// f(conn) 会返回一个 GobCodec 或其它类型的结构体实例
 	server.serveCodec(f(conn))
 }
 
@@ -82,12 +74,6 @@ func (server *Server) serveCodec(cc codec.Codec) {
 		waitGroup.Add(1)
 		go server.handleRequest(cc, req, sending, waitGroup)
 	}
-}
-
-type request struct {
-	header *codec.Header
-	argv   reflect.Value
-	replyv reflect.Value
 }
 
 func (server *Server) readRequestHeader(cc codec.Codec) (*codec.Header, error) {
