@@ -1,7 +1,7 @@
 package server
 
 import (
-	codec "EugeneRPC/codec"
+	"EugeneRPC/codec"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -64,7 +64,7 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 	server.serveCodec(f(conn))
 }
 
-var inalidRequest = struct{}{}
+var invalidRequest = struct{}{}
 
 func (server *Server) serveCodec(cc codec.Codec) {
 	sending := new(sync.Mutex)
@@ -76,7 +76,7 @@ func (server *Server) serveCodec(cc codec.Codec) {
 				break
 			}
 			req.header.Error = err.Error()
-			server.sendResponse(cc, req.header, inalidRequest, sending)
+			server.sendResponse(cc, req.header, invalidRequest, sending)
 			continue
 		}
 		waitGroup.Add(1)
