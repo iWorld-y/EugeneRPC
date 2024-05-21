@@ -34,6 +34,10 @@ type Client struct {
 }
 
 var (
+	// 将 nil 指针强行转为 *Client 类型
+	// 并赋值给 io.Closer 类型的 _ 变量
+	// 若 Client 未实现 io.Closer 接口
+	// 则无法通过编译检查
 	_           io.Closer = (*Client)(nil)
 	ErrShutdown           = errors.New("连接已关闭")
 )
