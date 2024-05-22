@@ -12,18 +12,19 @@ import (
 	"sync"
 )
 
-type Server struct {
-}
+var DefaultServer *Server
+
+type Server struct{}
 
 func NewServer() *Server {
-	return &Server{}
+	DefaultServer = &Server{}
+	return DefaultServer
 }
-
-var DefaultServer = NewServer()
 
 // Accept 循环等待 socket 建立连接, 若连接无错误则开启 server.serveConn 子协程去处理具体过程.
 func (server *Server) Accept(listener net.Listener) {
 	for {
+		// 若无连接则阻塞
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Println("RPC 服务: Accept 错误: ", err)
